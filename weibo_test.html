@@ -1,0 +1,280 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>微博ajax接口测试</title>
+<link href="style/weibo.css" rel="stylesheet" />
+<script src="ajax.js"></script>
+<script>
+window.onload = function(){
+	var oText = document.getElementById("tijiaoText");
+	var oBtn  = document.getElementById("btn_send");
+	var oMsgList = document.getElementById("messList");
+	var oPage = document.getElementById("page");
+	
+	var url = "weibo.php";
+	
+	//发表留言
+	oBtn.onclick = function(){
+		/*
+			weibo.php?act=add&content=xxx	添加一条
+			 返回：{error:0, id: 新添加内容的ID, time: 添加时间}
+		       {error: 0`, id: 5, time: 1482475969}
+		*/
+		var content = oText.value;
+		$.ajax({
+			url:url,
+			data:{
+				act:"add",
+				content:content	
+			},
+			success:function(str){
+				//alert(str);
+				var json = eval("("+str+")");
+				if(json.error == 0){
+					
+					json.content = content;
+					json.acc = 0;
+					json.ref = 0;
+					
+					if(pageNo == 1){
+						//创建元素
+						var oDiv = createDiv(json);
+						
+						if(oMsgList.children.length > 0){
+							oMsgList.insertBefore(oDiv,oMsgList.children[0]);
+						} else {
+							oMsgList.appendChild(oDiv);
+						}
+						
+						
+						if(oMsgList.children.length > 6){
+							oMsgList.removeChild(oMsgList.children[6]);
+						}
+					
+					} else {
+							pageNo = 1;
+							getPageData();
+					}
+					
+					//重新获取页码
+					getPageCount();//?
+					
+				}
+				
+			}	
+		});	
+	};  
+	
+	//	获取一页数据
+	/*
+		weibo.php?act=get&page=1	
+		 返回：[{id: ID, content: "内容", time: 时间戳, acc: 顶次数, ref: 踩次数}, {...}, ...]
+	*/
+	var pageNo = 1;
+	getPageData();
+	function getPageData(){
+	  	$.ajax({
+			url:url,
+			data:{
+				act:"get",
+				page:pageNo	
+			},
+			success: function(str){
+				//alert(str);
+				var arr = eval("("+str+")");
+				
+				oMsgList.innerHTML = "";
+				for(var i = 0; i < arr.length; i++){
+					var oDiv = createDiv(arr[i]);
+					oMsgList.appendChild(oDiv);
+				}
+			}
+				
+		});
+	}
+	
+	/*
+	weibo.php?act=get_page_count	获取页数
+				返回：{count:页数}
+	
+	*/
+	getPageCount();
+	function getPageCount(){
+		$.ajax({
+			url:url,
+			data:{act:"get_page_count"},
+			success: function(str){
+				//alert(str);
+				var json = eval("("+str+")");
+				
+				
+				oPage.innerHTML = "";
+				//创建页码 active
+				for(var i = 0; i < json.count; i++){
+					var oA = document.createElement("a");
+					oA.href = "javascript:;";
+					oA.innerHTML = i+1;
+					oPage.appendChild(oA);
+					
+					oA.onclick = function(){
+						for(var i = 0; i < oPage.children.length; i++){
+							oPage.children[i].className = "";
+						}
+						this.className = "active";
+						
+						//重新加载当前页码的数据						
+						pageNo = this.innerHTML;
+						getPageData();
+					};
+				}
+				oPage.children[pageNo - 1].className = "active";
+			}
+				
+		});
+	}
+	
+	
+/*	
+	weibo.php?act=acc&id=12			顶某一条数据
+				返回：{error:0}
+			
+			weibo.php?act=ref&id=12			踩某一条数据
+				返回：{error:0}
+				
+			weibo.php?act=del&id=12			删除一条数据
+				返回：{error:0}
+	*/
+	
+	
+	
+function createDiv(json){
+	//创建元素
+	var oDiv = document.createElement("div");
+	oDiv.className = "reply";
+	oDiv.innerHTML = '<p class="replyContent">'+json.content+'</p>'
+	 +'<p class="operation">'
+		+'<span class="replyTime">'+formatDate(json.time)+'</span>'
+		+'<span class="handle">'
+			+'<a href="javascript:;" class="top">'+json.acc+'</a>'
+			+'<a href="javascript:;" class="down_icon">'+json.ref+'</a>'
+			+'<a href="javascript:;" class="cut">删除</a>'
+		+'</span>'
+	+'</p>'; 
+	
+	
+	var oAcc = oDiv.getElementsByTagName("a")[0];
+	
+	oAcc.onclick = function(){
+		$.ajax({
+			url:url,
+			data:{
+				act:"acc",
+				id:json.id			
+			},
+			success: function(str){
+				//alert(str);
+				
+				var json = eval("("+str+")");
+				
+				if(json.error == 0){
+					oAcc.innerHTML = parseInt(oAcc.innerHTML) + 1;
+				}
+			}	
+		});	
+	};
+	
+	var oRef = oDiv.getElementsByTagName("a")[1];
+	
+	oRef.onclick = function(){
+		$.ajax({
+			url:url,
+			data:{
+				act:"ref",
+				id:json.id			
+			},
+			success: function(str){
+				//alert(str);
+				
+				var json = eval("("+str+")");
+				
+				if(json.error == 0){
+					oRef.innerHTML = parseInt(oRef.innerHTML) + 1;
+				}
+			}	
+		});	
+	};
+	
+	
+	
+	var oDel = oDiv.getElementsByTagName("a")[2];
+	
+	oDel.onclick = function(){
+		$.ajax({
+			url:url,
+			data:{
+				act:"del",
+				id:json.id			
+			},
+			success: function(str){
+				alert(str);
+				
+				var json = eval("("+str+")");
+				
+				if(json.error == 0){
+					getPageData();
+					getPageCount();
+				}
+			}	
+		});	
+	};
+	
+	
+	return oDiv;
+}
+	
+
+
+function formatDate(s){
+	var oDate = new Date(s*1000);
+	var arr = [
+		oDate.getFullYear(),"-",
+		oDate.getMonth() + 1,"-",
+		oDate.getDate()," ",
+		oDate.getHours(),":",
+		oDate.getMinutes(),":",
+		oDate.getSeconds()
+	];
+	return arr.join("");
+}
+
+
+	
+	
+};
+</script>
+</head>
+
+<body>
+<div class="xmgArea">
+<!--留言-->
+     <div class="takeComment">
+        <textarea name="textarea" class="takeTextField" id="tijiaoText"></textarea>
+        <div class="takeSbmComment">
+            <input id="btn_send" type="button" class="inputs" value="" />
+            <span>(可按 Enter 回复)</span>
+        </div>
+    </div>
+<!--已留-->
+    <div class="commentOn">
+        <div class="noContent">暂无留言</div>
+        <div id="messList" class="messList">        </div>
+        <div id="page" class="page">
+        	<!--<a href="javascript:;" class="active">1</a>
+        	<a href="javascript:;">2</a>
+        	<a href="javascript:;">3</a>-->
+        </div>
+    </div>
+</div>
+</body>
+</html>
