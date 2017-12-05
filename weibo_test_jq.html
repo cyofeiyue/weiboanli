@@ -6,252 +6,224 @@
 <link href="style/weibo.css" rel="stylesheet" />
 <script src="libs/jquery-3.2.1.js"></script>
 <script>
-window.onload = function(){
-	var oText = $("tijiaoText");
-	var oBtn  = $("btn_send");
-	var oMsgList = $("messList");
-	var oPage = $("page");
-	
-	var url = "weibo.php";
-	
-	//发表留言
-	oBtn.onclick = function(){
-		/*
-			weibo.php?act=add&content=xxx	添加一条
-			 返回：{error:0, id: 新添加内容的ID, time: 添加时间}
-		       {error: 0`, id: 5, time: 1482475969}
-		*/
-		var content = oText.value;
-		$.ajax({
-			url:url,
-			data:{
-				act:"add",
-				content:content	
-			},
-			success:function(str){
-				//alert(str);
-				var json = eval("("+str+")");
-				if(json.error == 0){
-					
-					json.content = content;
-					json.acc = 0;
-					json.ref = 0;
-					
-					if(pageNo == 1){
-						//创建元素
-						var oDiv = createDiv(json);
-						
-						if(oMsgList.children.length > 0){
-							oMsgList.insertBefore(oDiv,oMsgList.children[0]);
-						} else {
-							oMsgList.appendChild(oDiv);
-						}
-						
-						
-						if(oMsgList.children.length > 6){
-							oMsgList.removeChild(oMsgList.children[6]);
-						}
-					
-					} else {
-							pageNo = 1;
-							getPageData();
-					}
-					
-					//重新获取页码
-					getPageCount();//?
-					
-				}
-				
-			}	
-		});	
-	};  
-	
-	//	获取一页数据
-	/*
-		weibo.php?act=get&page=1	
-		 返回：[{id: ID, content: "内容", time: 时间戳, acc: 顶次数, ref: 踩次数}, {...}, ...]
-	*/
-	var pageNo = 1;
-	getPageData();
-	function getPageData(){
-	  	$.ajax({
-			url:url,
-			data:{
-				act:"get",
-				page:pageNo	
-			},
-			success: function(str){
-				//alert(str);
-				var arr = eval("("+str+")");
-				
-				oMsgList.innerHTML = "";
-				for(var i = 0; i < arr.length; i++){
-					var oDiv = createDiv(arr[i]);
-					oMsgList.appendChild(oDiv);
-				}
-			}
-				
-		});
-	}
-	
-	/*
-	weibo.php?act=get_page_count	获取页数
-				返回：{count:页数}
-	
-	*/
-	getPageCount();
-	function getPageCount(){
-		$.ajax({
-			url:url,
-			data:{act:"get_page_count"},
-			success: function(str){
-				//alert(str);
-				var json = eval("("+str+")");
-				
-				
-				oPage.innerHTML = "";
-				//创建页码 active
-				for(var i = 0; i < json.count; i++){
-					var oA = document.createElement("a");
-					oA.href = "javascript:;";
-					oA.innerHTML = i+1;
-					oPage.appendChild(oA);
-					
-					oA.onclick = function(){
-						for(var i = 0; i < oPage.children.length; i++){
-							oPage.children[i].className = "";
-						}
-						this.className = "active";
-						
-						//重新加载当前页码的数据						
-						pageNo = this.innerHTML;
-						getPageData();
-					};
-				}
-				oPage.children[pageNo - 1].className = "active";
-			}
-				
-		});
-	}
-	
-	
-/*	
-	weibo.php?act=acc&id=12			顶某一条数据
-				返回：{error:0}
-			
-			weibo.php?act=ref&id=12			踩某一条数据
-				返回：{error:0}
-				
-			weibo.php?act=del&id=12			删除一条数据
-				返回：{error:0}
-	*/
-	
-	
-	
-function createDiv(json){
-	//创建元素
-	var oDiv = document.createElement("div");
-	oDiv.className = "reply";
-	oDiv.innerHTML = '<p class="replyContent">'+json.content+'</p>'
-	 +'<p class="operation">'
-		+'<span class="replyTime">'+formatDate(json.time)+'</span>'
-		+'<span class="handle">'
-			+'<a href="javascript:;" class="top">'+json.acc+'</a>'
-			+'<a href="javascript:;" class="down_icon">'+json.ref+'</a>'
-			+'<a href="javascript:;" class="cut">删除</a>'
-		+'</span>'
-	+'</p>'; 
-	
-	
-	var oAcc = oDiv.getElementsByTagName("a")[0];
-	
-	oAcc.onclick = function(){
-		$.ajax({
-			url:url,
-			data:{
-				act:"acc",
-				id:json.id			
-			},
-			success: function(str){
-				//alert(str);
-				
-				var json = eval("("+str+")");
-				
-				if(json.error == 0){
-					oAcc.innerHTML = parseInt(oAcc.innerHTML) + 1;
-				}
-			}	
-		});	
-	};
-	
-	var oRef = oDiv.getElementsByTagName("a")[1];
-	
-	oRef.onclick = function(){
-		$.ajax({
-			url:url,
-			data:{
-				act:"ref",
-				id:json.id			
-			},
-			success: function(str){
-				//alert(str);
-				
-				var json = eval("("+str+")");
-				
-				if(json.error == 0){
-					oRef.innerHTML = parseInt(oRef.innerHTML) + 1;
-				}
-			}	
-		});	
-	};
-	
-	
-	
-	var oDel = oDiv.getElementsByTagName("a")[2];
-	
-	oDel.onclick = function(){
-		$.ajax({
-			url:url,
-			data:{
-				act:"del",
-				id:json.id			
-			},
-			success: function(str){
-				alert(str);
-				
-				var json = eval("("+str+")");
-				
-				if(json.error == 0){
-					getPageData();
-					getPageCount();
-				}
-			}	
-		});	
-	};
-	
-	
-	return oDiv;
-}
-	
+    $(function () {
+        var oText = $("#tijiaoText");
+        var oBtn  = $("#btn_send");
+        var oMsgList = $("#messList");
+        var oPage = $("#page");
+        var url = "weibo.php";
+        var pageNo = 1;
+
+        //分页标签生成
+        getPageCount();
+        //获取第一页数据
+        getPageData()
+        /*
+            weibo.php?act=get&page=1
+             返回：[{id: ID, content: "内容", time: 时间戳, acc: 顶次数, ref: 踩次数}, {...}, ...]
+        */
+        function getPageData() {
+            $.ajax({
+                url:url,
+                type:'GET',
+                data:{
+                    act:'get',
+                    page:pageNo
+                },
+                success:function (data) {
+                    var json = eval("("+data+")");
+                    //清空上一次数据
+                    oMsgList.empty();
+                    $.each(json,function (index,item) {
+                        //创建元素
+                        //var oDiv = document.createElement("div");
+                        var oDiv = $("<div></div>")
+                        //oDiv.className = "reply";
+                        oDiv.attr("class","reply");
+                        var html = '<p class="replyContent">'+item.content+'</p>'
+                            +'<p class="operation">'
+                            +'<span class="replyTime">'+formatDate(item.time)+'</span>'
+                            +'<span class="handle">'
+                            +'<a href="javascript:;" class="top" id="top' + index + '">'+item.acc+'</a>'
+                            +'<a href="javascript:;" class="down_icon" id="down' + index + '">'+item.ref+'</a>'
+                            +'<a href="javascript:;" class="cut" id="cut' + index + '">删除</a>'
+                            +'</span>'
+                            +'</p>';
+                        oDiv.html(html);
+                        oMsgList.append(oDiv);
+                        //绑定事件
+                        bindClickEvent(index,item);
+                    })
+                },
+                error:function (xhr) {
+                    console.log(xhr)
+                },
+                complete:function (data) {
+                    //console.log(data)
+                }
+            })
+        }
+
+        function bindClickEvent(index,item) {
+            /*
+             weibo.php?act=acc&id=12			顶某一条数据
+                 返回：{error:0}
+            */
+            $("#top"+index).bind('click',{idnex:index,id:item.id},function (event) {
+                $.ajax({
+                    url:url,
+                    data:{
+                        act:"acc",
+                        id:event.data.id
+                    },
+                    success: function(str){
+                        var json = eval("("+str+")");
+                        if(json.error == 0){
+                            //oAcc.innerHTML = parseInt(oAcc.innerHTML) + 1;
+                            var num = $("#top"+index).text();
+                            $("#top"+index).text(parseInt(num) + 1)
+
+                        }
+                    }
+                });
+            })
+
+            /*
+              weibo.php?act=ref&id=12			踩某一条数据
+                 返回：{error:0}
+            */
+            $("#down"+index).bind('click',{idnex:index,id:item.id},function (event) {
+                $.ajax({
+                    url:url,
+                    data:{
+                        act:"ref",
+                        id:event.data.id
+                    },
+                    success: function(str){
+                        var json = eval("("+str+")");
+                        if(json.error == 0){
+                            var num = $("#down"+index).text();
+                            $("#down"+index).text(parseInt(num) + 1)
+                        }
+                    }
+                });
+            })
 
 
-function formatDate(s){
-	var oDate = new Date(s*1000);
-	var arr = [
-		oDate.getFullYear(),"-",
-		oDate.getMonth() + 1,"-",
-		oDate.getDate()," ",
-		oDate.getHours(),":",
-		oDate.getMinutes(),":",
-		oDate.getSeconds()
-	];
-	return arr.join("");
-}
+            /*
+             weibo.php?act=del&id=12			删除一条数据
+                 返回：{error:0}
+            */
+            $("#cut" + index).bind('click',{idnex:index,id:item.id},function (event) {
+                $.ajax({
+                    url:url,
+                    data:{
+                        act:"del",
+                        id:event.data.id
+                    },
+                    success: function(str){
+                        var json = eval("("+str+")");
+                        if(json.error == 0){
+                            getPageData();
+                            getPageCount();
+                        }
+                    }
+                });
+            })
+        }
 
+        /*
+        weibo.php?act=get_page_count	获取页数
+             返回：{count:页数}
+        */
+        function getPageCount(){
+            $.ajax({
+                url:url,
+                data:{act:"get_page_count"},
+                success: function(data){
+                    var json = eval("("+data+")");
+                    //oPage.innerHTML = "";
+                    oPage.html("")
+                    //创建页码 active
+                    for(var i = 0; i < json.count; i++){
+                        //var oA = document.createElement("a");
+                        //oA.href = "javascript:;";
+                        //oA.innerHTML = i+1;
+                        //oPage.appendChild(oA);
+                        var oA = $("<a href='javacript:;'></a>");
+                        oA.html(i+1);
+                        oPage.append(oA);
+                    }
+                    //给a标签绑定click方法
+                    $('#page > a').click(function (event) {
+                        //清空之前的active
+                        $("#page > a").attr("class","");
+                        //设置当前的active
+                        //this.attr("class","active"); X
+                        //this.className = "active";   O
+                        $(this).attr("class","active");
 
-	
-	
-};
+                        //重新加载当前页码的数据
+                        pageNo = $(this).text();
+                        getPageData();
+                    })
+
+                    //oPage.children[pageNo - 1].className = "active";
+                    var num = pageNo - 1;
+                    $('#page > a:eq(' + num + ')').attr("class","active");
+                }
+
+            });
+        }
+
+        /*
+        添加一条消息
+            weibo.php?act=add&content=xxx	添加一条
+            返回：{error:0, id: 新添加内容的ID, time: 添加时间}
+            {error: 0`, id: 5, time: 1482475969}
+        */
+        oBtn.click(function () {
+            $.ajax({
+                url:url,
+                type:'GET',
+                async:true, //或false,是否异步
+                data:{
+                    act:'add',
+                    content:oText.val()
+                },
+                timeout:5000,    //超时时间
+                //dataType:'json',    //返回的数据格式：json/xml/html/script/jsonp/text
+                beforeSend:function(xhr){
+                    console.log("发送前：" + xhr)
+                },
+                success:function(data,textStatus){
+                   var json = eval("(" + data + ")");
+                   if(json.error === 0){
+
+                   }
+                },
+                error:function(xhr,textStatus){
+                    console.log("发送失败：" +data)
+                },
+                complete:function(xhr,textStatus){
+                    console.log('发送结束')
+                }
+            })
+        })
+    })
+
+    function formatDate(s){
+        var oDate = new Date(s*1000);
+        var arr = [
+            oDate.getFullYear(),"-",
+            oDate.getMonth() + 1,"-",
+            oDate.getDate()," ",
+            oDate.getHours(),":",
+            oDate.getMinutes(),":",
+            oDate.getSeconds()
+        ];
+        return arr.join("");
+    }
 </script>
 </head>
 
