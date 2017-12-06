@@ -37,22 +37,11 @@
                     $.each(json,function (index,item) {
                         //创建元素
                         //var oDiv = document.createElement("div");
-                        var oDiv = $("<div></div>")
                         //oDiv.className = "reply";
-                        oDiv.attr("class","reply");
-                        var html = '<p class="replyContent">'+item.content+'</p>'
-                            +'<p class="operation">'
-                            +'<span class="replyTime">'+formatDate(item.time)+'</span>'
-                            +'<span class="handle">'
-                            +'<a href="javascript:;" class="top" id="top' + index + '">'+item.acc+'</a>'
-                            +'<a href="javascript:;" class="down_icon" id="down' + index + '">'+item.ref+'</a>'
-                            +'<a href="javascript:;" class="cut" id="cut' + index + '">删除</a>'
-                            +'</span>'
-                            +'</p>';
-                        oDiv.html(html);
+                        var oDiv = createDiv(item);
                         oMsgList.append(oDiv);
                         //绑定事件
-                        bindClickEvent(index,item);
+                        bindClickEvent(item);
                     })
                 },
                 error:function (xhr) {
@@ -64,12 +53,12 @@
             })
         }
 
-        function bindClickEvent(index,item) {
+        function bindClickEvent(item) {
             /*
              weibo.php?act=acc&id=12			顶某一条数据
                  返回：{error:0}
             */
-            $("#top"+index).bind('click',{idnex:index,id:item.id},function (event) {
+            $("#top"+item.id).bind('click',{id:item.id},function (event) {
                 $.ajax({
                     url:url,
                     data:{
@@ -80,8 +69,8 @@
                         var json = eval("("+str+")");
                         if(json.error == 0){
                             //oAcc.innerHTML = parseInt(oAcc.innerHTML) + 1;
-                            var num = $("#top"+index).text();
-                            $("#top"+index).text(parseInt(num) + 1)
+                            var num = $("#top"+event.data.id).text();
+                            $("#top"+event.data.id).text(parseInt(num) + 1)
 
                         }
                     }
@@ -92,7 +81,7 @@
               weibo.php?act=ref&id=12			踩某一条数据
                  返回：{error:0}
             */
-            $("#down"+index).bind('click',{idnex:index,id:item.id},function (event) {
+            $("#down"+item.id).bind('click',{id:item.id},function (event) {
                 $.ajax({
                     url:url,
                     data:{
@@ -102,8 +91,8 @@
                     success: function(str){
                         var json = eval("("+str+")");
                         if(json.error == 0){
-                            var num = $("#down"+index).text();
-                            $("#down"+index).text(parseInt(num) + 1)
+                            var num = $("#down"+event.data.id).text();
+                            $("#down"+event.data.id).text(parseInt(num) + 1)
                         }
                     }
                 });
@@ -114,7 +103,7 @@
              weibo.php?act=del&id=12			删除一条数据
                  返回：{error:0}
             */
-            $("#cut" + index).bind('click',{idnex:index,id:item.id},function (event) {
+            $("#cut" + item.id).bind('click',{id:item.id},function (event) {
                 $.ajax({
                     url:url,
                     data:{
@@ -177,6 +166,25 @@
         }
 
         /*
+        提交一个消息，生成一个Div
+        */
+        function createDiv(json) {
+            var oDiv = $("<div></div>")
+            oDiv.attr("class", "reply");
+            var html = '<p class="replyContent">' + json.content + '</p>'
+                + '<p class="operation">'
+                + '<span class="replyTime">' + formatDate(json.time) + '</span>'
+                + '<span class="handle">'
+                + '<a href="javascript:;" class="top" id="top' + json.id + '">' + json.acc + '</a>'
+                + '<a href="javascript:;" class="down_icon" id="down' + json.id + '">' + json.ref + '</a>'
+                + '<a href="javascript:;" class="cut" id="cut' + json.id + '">删除</a>'
+                + '</span>'
+                + '</p>';
+            oDiv.html(html);
+            return oDiv;
+        }
+
+        /*
         添加一条消息
             weibo.php?act=add&content=xxx	添加一条
             返回：{error:0, id: 新添加内容的ID, time: 添加时间}
@@ -194,19 +202,39 @@
                 timeout:5000,    //超时时间
                 //dataType:'json',    //返回的数据格式：json/xml/html/script/jsonp/text
                 beforeSend:function(xhr){
-                    console.log("发送前：" + xhr)
+                    //console.log("发送前：" + xhr)
                 },
                 success:function(data,textStatus){
                    var json = eval("(" + data + ")");
                    if(json.error === 0){
+                       json.content = oText.val();
+                       json.ref = 0;
+                       json.acc = 0;
 
+                       //在首页提交信息
+                       if(pageNo == 1){
+                           var oDiv = createDiv(json);
+                           if(oMsgList.children().length > 0){
+                               oDiv.prependTo(oMsgList);
+                           }else {
+                               oMsgList.append(oDiv);
+                           }
+                       }else {
+                           //如果在非首页的页面提交留言，需要回到第一页。
+                           pageNo = 1;
+                           getPageData();
+                       }
+                       //绑定事件
+                       bindClickEvent(json);
+                       //获取页码
+                       getPageCount()
                    }
                 },
                 error:function(xhr,textStatus){
-                    console.log("发送失败：" +data)
+                    //console.log("发送失败：" +data)
                 },
                 complete:function(xhr,textStatus){
-                    console.log('发送结束')
+                    //console.log('发送结束')
                 }
             })
         })
